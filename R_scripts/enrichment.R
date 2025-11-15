@@ -10,6 +10,7 @@ library(clusterProfiler)
 library(org.Hs.eg.db)
 library(ReactomePA)
 
+
 setwd("~/Library/CloudStorage/OneDrive-UniversityofBristol/CSHL")
 
 ###########################################################
@@ -59,8 +60,10 @@ merged_data <- prot_subset %>% left_join(df3, by = c("UniProt", "OlinkID"))
 Olink_proteins <- df3 %>% select(ensembl_gene_id)
 sig_proteins  <- merged_data %>% select(ensembl_gene_id)
 
+
 fwrite(Olink_proteins, "Olink_proteins.txt", col.names = FALSE, quote = FALSE)
-fwrite(sig_proteins,  "sig_proteins.txt",  col.names = FALSE, quote = FALSE)
+fwrite(sig_proteins,  "sig_proteins2.txt",  col.names = FALSE, quote = FALSE)
+
 
 ###########################################################
 ### 4) Convert to ENTREZ
@@ -180,3 +183,77 @@ results_down <- run_enrichment(
   outdir = "enrichment_results/down",
   label = "DOWN"
 )
+
+
+
+#
+
+proteins_up <- protein_df_up[, .(entrezgene_id)]
+proteins_down <- protein_df_down[, .(entrezgene_id)]
+
+
+merged_up<-merge(proteins_up, bg_ids, by.x="entrezgene_id", by.y="ENTREZID", all=FALSE)
+
+proteins_up[, entrezgene_id := as.character(entrezgene_id)]
+
+merged_up <- merge(
+  proteins_up, bg_ids,
+  by.x = "entrezgene_id", by.y = "ENTREZID",
+  all = FALSE
+)
+
+
+
+proteins_down[, entrezgene_id := as.character(entrezgene_id)]
+
+merged_down <- merge(
+  proteins_down, bg_ids,
+  by.x = "entrezgene_id", by.y = "ENTREZID",
+  all = FALSE
+)
+
+
+merged_down_unique <- unique(merged_down, by = "entrezgene_id")
+merged_down_unique<-as.data.frame(merged_down_unique) 
+
+merged_up_unique<-unique(merged_up, by = "entrezgene_id")
+merged_up_unique<-as.data.frame(merged_up_unique) 
+
+bg_ids_unique<-unique(bg_ids, by = "ENTREZID")
+bg_ids_unique<-as.data.frame(bg_ids_unique) 
+
+bg_ids_unique2 <- as.data.frame(bg_ids_unique[, 1])
+
+sig_ids_unique<-unique(sig_ids, by = "ENTREZID")
+sig_ids_unique<-as.data.frame(sig_ids_unique) 
+
+
+# save unique proteins lists 
+
+fwrite(bg_ids_unique, "all_proteins.txt", quote = FALSE, sep = "\t")
+fwrite(bg_ids_unique2, "all_proteins1.txt", quote = FALSE, sep = "\t", col.names = FALSE)
+fwrite(sig_ids_unique, "sig_proteins.txt", quote = FALSE, sep = "\t")
+fwrite(merged_up_unique, "upregulated_proteins.txt", quote = FALSE, sep = "\t")
+fwrite(merged_down_unique, "downregulated_proteins.txt", quote = FALSE, sep = "\t")
+
+
+
+
+
+Olink_proteins <- df3[, .(ensembl_gene_id)]
+sig_proteins  <- merged_data[, .(ensembl_gene_id)]
+
+protein_up2   <- prot_sub[regulation == "Upregulated"]
+protein_down2 <- prot_sub[regulation == "Downregulated"]
+merged_up<-merge(protein_up2, df3, by.x="Assay", by.y="gene_name", all=FALSE)
+merged_down<-merge(protein_down2, df3, by.x="Assay", by.y="gene_name", all=FALSE)
+
+# Keep only the ensembl_gene_id column
+merged_up <- merged_up[, .(ensembl_gene_id)]
+merged_down <- merged_down[, .(ensembl_gene_id)]
+
+# save the results 
+fwrite(merged_up, "upregulated_proteins.txt", quote = FALSE, sep = "\t")
+fwrite(merged_down, "downregulated_proteins.txt", quote = FALSE, sep = "\t")
+
+
